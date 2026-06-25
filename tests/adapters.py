@@ -28,8 +28,10 @@ def run_linear(
     Returns:
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
-
-    raise NotImplementedError
+    from cs336_basics.model import Linear
+    linear_model = Linear(d_in, d_out, device=in_features.device, dtype=in_features.dtype)
+    linear_model.load_state_dict({"W": weights.to(device=in_features.device, dtype=in_features.dtype)})
+    return linear_model(in_features)
 
 
 def run_embedding(
@@ -431,7 +433,9 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    raise NotImplementedError
+    from cs336_basics.utils import softmax
+
+    return softmax(in_features, dim=dim)
 
 
 def run_cross_entropy(
@@ -449,7 +453,10 @@ def run_cross_entropy(
     Returns:
         Float[Tensor, ""]: The average cross-entropy loss across examples.
     """
-    raise NotImplementedError
+    # return torch.nn.functional.cross_entropy(inputs, targets)
+    from cs336_basics.utils import cross_entropy
+
+    return cross_entropy(inputs, targets)
 
 
 def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:
