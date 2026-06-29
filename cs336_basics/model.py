@@ -3,6 +3,8 @@ import torch.nn as nn
 from jaxtyping import Float
 from torch import Tensor
 import torch.nn.functional as F
+from cs336_basics.utils import softmax
+import math
 
 class Linear(torch.nn.Module):
     def __init__(self, d_in, d_out, device=None, dtype=None):
@@ -51,3 +53,6 @@ def rmsnorm(d_model: int, eps: float, weights: Tensor, in_features: Tensor):
     rms = torch.sqrt(torch.mean(in_features ** 2, dim=-1, keepdim=True) + eps)
     return (in_features / rms) * weights
 
+def scaled_dot_product_attention(Q: Tensor, K: Tensor, V: Tensor, mask: Tensor) -> Tensor:
+    dp = ((Q @ K.transpose(-1, -2)) / math.sqrt(Q.shape[-1])).masked_fill(~mask, -torch.inf)  #[q k]
+    return softmax(dp, dim=-1) @ V # [q, k] @ [k v] -> [q v]

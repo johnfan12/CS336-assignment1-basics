@@ -52,4 +52,4 @@ def cross_entropy(inputs: Float[Tensor, " batch_size vocab_size"], targets: Int[
     return nll.mean()
 
 def gradient_clip(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:
-    
+    pass
