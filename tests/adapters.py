@@ -30,7 +30,7 @@ def run_linear(
     """
     #from cs336_basics.model import Linear
     #linear_model = Linear(d_in, d_out, device=in_features.device, dtype=in_features.dtype)
-    #linear_model.load_state_dict({"W": weights.to(device=in_features.device, dtype=in_features.dtype)})
+    #linear_model.load_state_dict({"weight": weights.to(device=in_features.device, dtype=in_features.dtype)})
     #return linear_model(in_features)
 
     return torch.einsum("... i, o i -> ... o", in_features, weights)

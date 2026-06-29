@@ -8,12 +8,12 @@ class Linear(torch.nn.Module):
     def __init__(self, d_in, d_out, device=None, dtype=None):
         super().__init__()
         w = torch.empty(d_out, d_in, device=device, dtype=dtype)
-        self.W = nn.Parameter(w)
+        self.weight = nn.Parameter(w)
         sigma = (2 / (d_in + d_out)) ** 0.5
-        nn.init.trunc_normal_(self.W,std=sigma)
+        nn.init.trunc_normal_(self.weight,std=sigma)
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.einsum("... i, o i -> ... o", x, self.W)
+        return torch.einsum("... i, o i -> ... o", x, self.weight)
 
 def silu(in_features: Float[Tensor, "..."]) -> Float[Tensor, "..."]:
     return in_features / (1 + torch.exp(-in_features))
@@ -37,9 +37,9 @@ class Swiglu(nn.Module):
         super().__init__()
         self.d_ff = d_ff
         self.d_model = d_model 
-        self.w1 = nn.Linear(d_ff, d_model, bias=False)
-        self.w2 = nn.Linear(d_model, d_ff, bias=False)
-        self.w3 = nn.Linear(d_ff, d_model, bias=False)
+        self.w1 = Linear(d_ff, d_model)
+        self.w2 = Linear(d_model, d_ff)
+        self.w3 = Linear(d_ff, d_model)
 
     def forward(self, in_features: Float[Tensor, "... d_model"]) -> Tensor:
         branch_a = silu(self.w1(in_features)) # ... d_ff
