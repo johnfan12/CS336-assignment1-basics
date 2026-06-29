@@ -46,3 +46,8 @@ class Swiglu(nn.Module):
         branch_b = self.w3(in_features) # ... d_ff
         combine = branch_a * branch_b # ... d_ff
         return self.w2(combine)
+    
+def rmsnorm(d_model: int, eps: float, weights: Tensor, in_features: Tensor):
+    rms = torch.sqrt(torch.mean(in_features ** 2, dim=-1, keepdim=True) + eps)
+    return (in_features / rms) * weights
+
