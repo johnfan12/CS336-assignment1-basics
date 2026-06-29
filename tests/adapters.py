@@ -28,10 +28,14 @@ def run_linear(
     Returns:
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
-    from cs336_basics.model import Linear
-    linear_model = Linear(d_in, d_out, device=in_features.device, dtype=in_features.dtype)
-    linear_model.load_state_dict({"W": weights.to(device=in_features.device, dtype=in_features.dtype)})
-    return linear_model(in_features)
+    #from cs336_basics.model import Linear
+    #linear_model = Linear(d_in, d_out, device=in_features.device, dtype=in_features.dtype)
+    #linear_model.load_state_dict({"W": weights.to(device=in_features.device, dtype=in_features.dtype)})
+    #return linear_model(in_features)
+
+    return torch.einsum("... i, o i -> ... o", in_features, weights)
+    #return in_features @ weights.T
+    #return torch.matmul(in_features, weights)
 
 
 def run_embedding(
@@ -53,7 +57,7 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
 
-    raise NotImplementedError
+    return weights[token_ids]
 
 
 def run_swiglu(
@@ -85,8 +89,14 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    raise NotImplementedError
-
+    #from cs336_basics.model import swiglu
+    #return swiglu(d_model, d_ff, w1_weight, w2_weight, w3_weight, in_features)
+    from cs336_basics.model import Swiglu
+    swiglu = Swiglu(d_ff, d_model)
+    swiglu.w1.weight.data = w1_weight
+    swiglu.w2.weight.data = w2_weight
+    swiglu.w3.weight.data = w3_weight
+    return swiglu(in_features)
 
 def run_scaled_dot_product_attention(
     Q: Float[Tensor, " ... queries d_k"],
@@ -394,7 +404,8 @@ def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
         Float[Tensor,"..."]: of with the same shape as `in_features` with the output of applying
         SiLU to each element.
     """
-    raise NotImplementedError
+    from cs336_basics.model import silu
+    return silu(in_features)
 
 
 def run_get_batch(
