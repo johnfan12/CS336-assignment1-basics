@@ -89,3 +89,12 @@ def multihead_self_attention(d_model: int, num_heads: int,
     atten = atten.reshape(*batch_dims, sequence_length, d_model) # [... sequence_length num_heads head_dim] -> [... sequence_length d_model]
 
     return F.linear(atten, o_proj_weight) # [... sequence_length d_model] @ [d_model d_model] -> [... sequence_length d_model]
+
+def rope(
+    d_k: int,
+    theta: float,
+    max_seq_len: int,
+    in_query_or_key: Tensor,
+    token_positions: Tensor,
+) -> Tensor:
+    
