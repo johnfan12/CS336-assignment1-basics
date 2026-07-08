@@ -97,4 +97,25 @@ def rope(
     in_query_or_key: Tensor,
     token_positions: Tensor,
 ) -> Tensor:
-    
+    dim_indices = torch.arange(0, d_k, 2)
+    inv_freq = 1.0 / (theta ** (dim_indices.float() / d_k))
+
+    positions = torch.arange(0, max_seq_len).float()
+    angles = torch.outer(positions, inv_freq)
+
+    cos = torch.cos(angles)
+    sin = torch.sin(angles)
+
+    cos_pos = cos[token_positions]
+    sin_pos = sin[token_positions]
+
+    x_even = in_query_or_key[..., 0::2]
+    x_odd = in_query_or_key[..., 1::2]
+
+    x_rot_even = x_even * cos_pos - x_odd * sin_pos
+    x_rot_odd = x_even * sin_pos + x_odd * cos_pos
+
+    out = torch.stack([x_rot_even, x_rot_odd], dim=-1)
+    out = out.flatten(-2)
+
+    return out 
