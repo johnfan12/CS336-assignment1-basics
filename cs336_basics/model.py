@@ -119,3 +119,43 @@ def rope(
     out = out.flatten(-2)
 
     return out 
+
+def mha_with_rope(
+    d_model: int,
+    num_heads: int,
+    max_seq_len: int,
+    theta: float,
+    q_proj_weight: Tensor,
+    k_proj_weight: Tensor,
+    v_proj_weight: Tensor,
+    o_proj_weight: Tensor,
+    in_features: Tensor,
+    token_positions: Tensor,
+) -> Tensor:
+    assert d_model % num_heads == 0
+
+    q = F.linear(in_features, q_proj_weight) # [... sequence_length d_model] @ [d_model d_model] -> [... sequence_length d_model]
+    k = F.linear(in_features, k_proj_weight) # [... sequence_length d_model] @ [d_model d_model] -> [... sequence_length d_model]
+    v = F.linear(in_features, v_proj_weight) # [... sequence_length d_model] @ [d_model d_model] -> [... sequence_length d_model]
+
+    *batch_dims, sequence_length, input_dim = in_features.shape
+    assert input_dim == d_model
+    head_dim = d_model // num_heads
+
+    q = q.reshape(*batch_dims, sequence_length, num_heads, head_dim).transpose(-3, -2) # [... sequence_length d_model] -> [... sequence_length num_heads head_dim] -> [... num_heads sequence_length head_dim] 
+    k = k.reshape(*batch_dims, sequence_length, num_heads, head_dim).transpose(-3, -2) # [... sequence_length d_model] -> [... sequence_length num_heads head_dim] -> [... num_heads sequence_length head_dim] 
+    v = v.reshape(*batch_dims, sequence_length, num_heads, head_dim).transpose(-3, -2) # [... sequence_length d_model] -> [... sequence_length num_heads head_dim] -> [... num_heads sequence_length head_dim] 
+    
+    q = rope(d_k=head_dim, theta=theta, max_seq_len=max_seq_len, in_query_or_key=q, token_positions=token_positions)
+    k = rope(d_k=head_dim, theta=theta, max_seq_len=max_seq_len, in_query_or_key=k, token_positions=token_positions)
+    #scores = q @ k.transpose(-2, -1) # [... num_heads sequence_length head_dim] @ [... num_heads head_dim sequence_length] -> [... num_heads sequence_length sequence_length]
+    #scores = scores / math.sqrt(head_dim)
+    #atten = softmax(scores, dim=-1) # [... num_heads sequence_length sequence_length]
+     
+    causal_mask = torch.tril(torch.ones(sequence_length, sequence_length, dtype=torch.bool))
+    atten = scaled_dot_product_attention(q, k, v, causal_mask) # [... num_heads sequence_length sequence_length] @ [... num_heads sequence_length head_dim] -> [... num_heads sequence_length head_dim]
+
+    atten = atten.transpose(-3, -2) # [... num_heads sequence_length head_dim] -> [... sequence_length num_heads head_dim]
+    atten = atten.reshape(*batch_dims, sequence_length, d_model) # [... sequence_length num_heads head_dim] -> [... sequence_length d_model]
+
+    return F.linear(atten, o_proj_weight)
