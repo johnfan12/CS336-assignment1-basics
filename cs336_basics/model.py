@@ -201,3 +201,37 @@ def transformer_block(
                    weights["ffn.w3.weight"], h)
 
     return x
+
+def transformer_lm(
+    vocab_size: int,
+    context_length: int,
+    d_model: int,
+    num_layers: int,
+    num_heads: int,
+    d_ff: int,
+    rope_theta: float,
+    weights: dict[str, Tensor],
+    in_indices: Tensor
+) -> Tensor:
+    x = weights["token_embeddings.weight"][in_indices]
+
+    for i in range(num_layers):
+        weights_layers = {
+            "attn.q_proj.weight": weights[f"layers.{i}.attn.q_proj.weight"],
+            "attn.k_proj.weight": weights[f"layers.{i}.attn.k_proj.weight"],
+            "attn.v_proj.weight": weights[f"layers.{i}.attn.v_proj.weight"],
+            "attn.output_proj.weight": weights[f"layers.{i}.attn.output_proj.weight"],
+            "ln1.weight": weights[f"layers.{i}.ln1.weight"],
+            "ffn.w1.weight": weights[f"layers.{i}.ffn.w1.weight"],
+            "ffn.w2.weight": weights[f"layers.{i}.ffn.w2.weight"],
+            "ffn.w3.weight": weights[f"layers.{i}.ffn.w3.weight"],
+            "ln2.weight": weights[f"layers.{i}.ln2.weight"]
+        }
+        
+        x = transformer_block(d_model, num_heads, d_ff, context_length, rope_theta,
+                          weights_layers, x)
+
+    x = rmsnorm(d_model, 1e-5, weights["ln_final.weight"], x)
+    out_emb = x @ weights["lm_head.weight"].T
+
+    return out_emb
