@@ -159,3 +159,45 @@ def mha_with_rope(
     atten = atten.reshape(*batch_dims, sequence_length, d_model) # [... sequence_length num_heads head_dim] -> [... sequence_length d_model]
 
     return F.linear(atten, o_proj_weight)
+
+def attention_sublayer(
+    d_model: int,
+    num_heads: int,
+    max_seq_len: int,
+    theta: float,
+    weights: dict[str, Tensor],
+    in_features: Float[Tensor, " batch sequence_length d_model"],
+    token_positions: Tensor,
+    eps: float = 1e-5
+):
+    h = rmsnorm(d_model, eps, weights["ln1.weight"], in_features)
+
+    atten_out = mha_with_rope(d_model, num_heads, max_seq_len, theta,
+                              weights["attn.q_proj.weight"],
+                              weights["attn.k_proj.weight"],
+                              weights["attn.v_proj.weight"],
+                              weights["attn.output_proj.weight"],
+                              h, token_positions)
+
+    return in_features + atten_out
+
+def transformer_block(
+    d_model: int,
+    num_heads: int,
+    d_ff: int,
+    max_seq_len: int,
+    theta: float,
+    weights: dict[str, Tensor],
+    in_features: Float[Tensor, " batch sequence_length d_model"],
+) -> Float[Tensor, " batch sequence_length d_model"]:
+    seq_len = in_features.shape[-2]
+    token_positions = torch.arange(seq_len, device=in_features.device)
+
+    x = attention_sublayer(d_model, num_heads, max_seq_len, theta,
+                           weights, in_features, token_positions)
+    
+    h = rmsnorm(d_model, 1e-5, weights["ln2.weight"], x)
+    x = x + swiglu(d_model, d_ff, weights["ffn.w1.weight"], weights["ffn.w2.weight"],
+                   weights["ffn.w3.weight"], h)
+
+    return x
