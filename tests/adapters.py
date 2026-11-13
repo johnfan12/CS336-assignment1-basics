@@ -34,9 +34,10 @@ def run_linear(
     #linear_model.load_state_dict({"weight": weights.to(device=in_features.device, dtype=in_features.dtype)})
     #return linear_model(in_features)
 
-    return torch.einsum("... i, o i -> ... o", in_features, weights)
-    #return in_features @ weights.T
-    #return torch.matmul(in_features, weights)
+    from cs336_basics.Linear import Linear
+    linear_model = Linear(d_in, d_out)
+    linear_model.weights = nn.Parameter(weights)
+    return linear_model(in_features)
 
 
 def run_embedding(
