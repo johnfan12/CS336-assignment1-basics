@@ -8,6 +8,7 @@ import numpy.typing as npt
 import torch
 from jaxtyping import Bool, Float, Int
 from torch import Tensor
+from torch import nn
 
 
 def run_linear(
@@ -57,7 +58,10 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
 
-    return weights[token_ids]
+    from cs336_basics.embedding import Embedding
+    embed = Embedding(num_embeddings=vocab_size, embedding_dim=d_model)
+    embed.weights = nn.Parameter(weights)
+    return embed(token_ids)
 
 
 def run_swiglu(
