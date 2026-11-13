@@ -96,12 +96,19 @@ def run_swiglu(
     # swiglu.w3.weight.data = w3_weight
     #from cs336_basics.model import swiglu
     #return swiglu(d_model, d_ff, w1_weight, w2_weight, w3_weight, in_features)
-    from cs336_basics.model import Swiglu
-    swiglu = Swiglu(d_ff, d_model)
-    swiglu.w1.weight.data = w1_weight
-    swiglu.w2.weight.data = w2_weight
-    swiglu.w3.weight.data = w3_weight
+    #from cs336_basics.model import Swiglu
+    #swiglu = Swiglu(d_ff, d_model)
+    #swiglu.w1.weight.data = w1_weight
+    #swiglu.w2.weight.data = w2_weight
+    #swiglu.w3.weight.data = w3_weight
+    #return swiglu(in_features)
+    from cs336_basics.swiglu import Swiglu
+    swiglu = Swiglu(d_model, d_ff)
+    swiglu.w1.weights = nn.Parameter(w1_weight)
+    swiglu.w2.weights = nn.Parameter(w2_weight)
+    swiglu.w3.weights = nn.Parameter(w3_weight)
     return swiglu(in_features)
+
 
 def run_scaled_dot_product_attention(
     Q: Float[Tensor, " ... queries d_k"],
