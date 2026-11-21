@@ -168,9 +168,8 @@ def run_multihead_self_attention(
     #                                o_proj_weight, in_features)
     from cs336_basics.mha import Multiheadattention
     mha = Multiheadattention(d_model, num_heads)
-    mha.q_proj_weight.weights = nn.Parameter(q_proj_weight)
-    mha.k_proj_weight.weights = nn.Parameter(k_proj_weight)
-    mha.v_proj_weight.weights = nn.Parameter(v_proj_weight)
+    qkv_weights = torch.cat([q_proj_weight, k_proj_weight, v_proj_weight], dim=0)
+    mha.qkv_proj_weight.weights = nn.Parameter(qkv_weights)
     mha.o_proj_weight.weights = nn.Parameter(o_proj_weight)
     return mha(in_features)
 
@@ -217,9 +216,8 @@ def run_multihead_self_attention_with_rope(
     #                     o_proj_weight, in_features, token_positions)
     from cs336_basics.mha import Multiheadattention
     mha = Multiheadattention(d_model, num_heads, max_seq_len, theta, True)
-    mha.q_proj_weight.weights = nn.Parameter(q_proj_weight)
-    mha.k_proj_weight.weights = nn.Parameter(k_proj_weight)
-    mha.v_proj_weight.weights = nn.Parameter(v_proj_weight)
+    qkv_weights = torch.cat([q_proj_weight, k_proj_weight, v_proj_weight], dim=0)
+    mha.qkv_proj_weight.weights = nn.Parameter(qkv_weights)
     mha.o_proj_weight.weights = nn.Parameter(o_proj_weight)
     return mha(in_features, token_positions)
 
@@ -319,9 +317,20 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    from cs336_basics.model import transformer_block
-    return transformer_block(d_model, num_heads, d_ff, max_seq_len, theta, weights, in_features)
+    #from cs336_basics.model import transformer_block
+    #return transformer_block(d_model, num_heads, d_ff, max_seq_len, theta, weights, in_features)
+    from cs336_basics.transformer_block import TransformerBlock
+    tb = TransformerBlock(d_model, num_heads, d_ff, max_seq_len, rope_theta=theta)
+    tb.rms1.weights = nn.Parameter(weights["ln1.weight"])
+    tb.rms2.weights = nn.Parameter(weights["ln2.weight"])
+    qkv_proj = torch.cat([weights["attn.q_proj.weight"], weights["attn.k_proj.weight"], weights["attn.v_proj.weight"]], dim=0)
+    tb.mha.qkv_proj_weight.weights = nn.Parameter(qkv_proj)
+    tb.mha.o_proj_weight.weights = nn.Parameter(weights["attn.output_proj.weight"])
+    tb.ffn.w1.weights = nn.Parameter(weights["ffn.w1.weight"])
+    tb.ffn.w2.weights = nn.Parameter(weights["ffn.w2.weight"])
+    tb.ffn.w3.weights = nn.Parameter(weights["ffn.w3.weight"])
 
+    return tb(in_features)
 
 def run_transformer_lm(
     vocab_size: int,

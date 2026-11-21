@@ -23,9 +23,7 @@ class Multiheadattention(nn.Module):
 
         assert d_model % num_heads == 0
 
-        self.q_proj_weight = Linear(d_model, d_model, device=device, dtype=dtype)
-        self.k_proj_weight = Linear(d_model, d_model, device=device, dtype=dtype)
-        self.v_proj_weight = Linear(d_model, d_model, device=device, dtype=dtype)
+        self.qkv_proj_weight = Linear(d_model, 3*d_model, device=device, dtype=dtype)
         self.o_proj_weight = Linear(d_model, d_model, device=device, dtype=dtype)
 
         if self.use_rope:
@@ -34,9 +32,9 @@ class Multiheadattention(nn.Module):
             self.rope = None
 
     def forward(self, in_features, token_positions=None):
-        q = self.q_proj_weight(in_features)
-        k = self.k_proj_weight(in_features)
-        v = self.v_proj_weight(in_features)
+        qkv = self.qkv_proj_weight(in_features)
+
+        q, k, v = rearrange(qkv, "... s (three d) -> three ... s d", three=3).unbind(0)
 
         q = rearrange(q, "... seq_len (num_heads head_dim) -> ... num_heads seq_len head_dim", head_dim=self.head_dim, num_heads=self.num_heads)
         k = rearrange(k, "... seq_len (num_heads head_dim) -> ... num_heads seq_len head_dim", head_dim=self.head_dim, num_heads=self.num_heads)
