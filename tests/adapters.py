@@ -411,8 +411,25 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    from cs336_basics.model import transformer_lm
-    return transformer_lm(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, weights, in_indices)
+    # from cs336_basics.model import transformer_lm
+    # return transformer_lm(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, weights, in_indices)
+    from cs336_basics.transformer_lm import TransformerLM
+    lm = TransformerLM(d_model, num_heads, d_ff, vocab_size, context_length, num_layers, rope_theta)
+    lm.embd.weights = nn.Parameter(weights["token_embeddings.weight"])
+    for i in range(num_layers):
+        qkv_proj = torch.cat([weights[f"layers.{i}.attn.q_proj.weight"], weights[f"layers.{i}.attn.k_proj.weight"], weights[f"layers.{i}.attn.v_proj.weight"]], dim=0)
+        lm.Tblock[i].rms1.weights = nn.Parameter(weights[f"layers.{i}.ln1.weight"])
+        lm.Tblock[i].mha.qkv_proj_weight.weights = nn.Parameter(qkv_proj)
+        lm.Tblock[i].rms2.weights = nn.Parameter(weights[f"layers.{i}.ln2.weight"])
+        lm.Tblock[i].mha.o_proj_weight.weights = nn.Parameter(weights[f"layers.{i}.attn.output_proj.weight"])
+        lm.Tblock[i].ffn.w1.weights = nn.Parameter(weights[f"layers.{i}.ffn.w1.weight"])
+        lm.Tblock[i].ffn.w2.weights = nn.Parameter(weights[f"layers.{i}.ffn.w2.weight"])
+        lm.Tblock[i].ffn.w3.weights = nn.Parameter(weights[f"layers.{i}.ffn.w3.weight"])
+
+    lm.norm.weights = nn.Parameter(weights["ln_final.weight"])
+    lm.head.weights = nn.Parameter(weights["lm_head.weight"])
+
+    return lm(in_indices)                                                
 
 
 def run_rmsnorm(
