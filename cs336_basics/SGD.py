@@ -29,18 +29,17 @@ class SGD(torch.optim.Optimizer):
         :return: 如果传入 closure，返回 loss，否则返回 None
         """
         loss = None if closure is None else closure()
-        for group in self.param_groups: # 遍历不同的参数组: 不同组可以指定不同的超参数，比如第一层参数用小一点的 lr，最后一层用大一点的 lr
-            lr = group["lr"] # group 也是一个字典，取其中的 lr
-            for p in group["params"]: # 遍历该组内的每个待优化参数 p
-                if p.grad is None: # 梯度还没有计算出来，grad 属性为 None，跳过更新
+        for group in self.param_groups: 
+            lr = group["lr"] 
+            for p in group["params"]:
+                if p.grad is None:
                     continue
 
-                state = self.state[p]  # self.state 字典：保存每个参数对应的状态信息，如迭代步数、动量等；state[p] 获取参数 p 对应的状态字典
-                t = state.get("t", 0)  # 读取迭代计数 t；如果key "t" 不存在，返回默认值 0
-                grad = p.grad.data  # 获取损失 loss 关于参数 p 的梯度张量
-                p.data -= lr / math.sqrt(t + 1) * grad  # 原地更新参数：学习率随迭代步数做平方根衰减
-                state["t"] = t + 1  # 更新状态里的迭代计数，步数 +1
-
+                state = self.state[p] 
+                t = state.get("t", 0)
+                grad = p.grad.data
+                p.data -= lr / math.sqrt(t + 1) * grad
+                state["t"] = t + 1
         return loss
 
 # 测试 SGD：对比不同学习率下 toy 损失的收敛情况
