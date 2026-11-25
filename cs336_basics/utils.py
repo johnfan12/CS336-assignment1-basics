@@ -53,3 +53,26 @@ def cross_entropy(inputs: Float[Tensor, " batch_size vocab_size"], targets: Int[
 
 def gradient_clip(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:
     pass
+
+
+def learning_rate_schedule(
+    it: int,
+    max_learning_rate: float,
+    min_learning_rate: float,
+    warmup_iters: int,
+    cosine_cycle_iters: int,
+):
+    '''
+    it: int  当前迭代步数 t
+    max_learning_rate: float  α_max，最大学习率
+    min_learning_rate: float  α_min，最小（最终）学习率
+    warmup_iters: int  T_w，预热迭代数
+    cosine_cycle_iters: int  T_c，余弦退火的结束迭代
+    return: float，第 it 步使用的学习率 α_t
+    '''
+    if it < warmup_iters:
+        return max_learning_rate * it / warmup_iters
+    if it < cosine_cycle_iters:
+        return min_learning_rate + (max_learning_rate - min_learning_rate) * (1 + math.cos(math.pi * (it - warmup_iters) / (cosine_cycle_iters - warmup_iters))) / 2
+    else:
+        return min_learning_rate
