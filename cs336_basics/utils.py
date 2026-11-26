@@ -3,6 +3,7 @@ import math
 from jaxtyping import Float,Bool,Int
 from torch import Tensor
 from collections.abc import Iterable
+import numpy as np
 
 def softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
     """
@@ -87,3 +88,28 @@ def learning_rate_schedule(
         return min_learning_rate + (max_learning_rate - min_learning_rate) * (1 + math.cos(math.pi * (it - warmup_iters) / (cosine_cycle_iters - warmup_iters))) / 2
     else:
         return min_learning_rate
+
+def get_batch(
+    x: np.ndarray,
+    batch_size: int,
+    context_length: int,
+    device: str,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    '''
+    x: np.ndarray  一维整数数组，元素为 token ID
+    batch_size: int  B，批大小
+    context_length: int  L，每条样本的上下文长度
+    device: str  设备字符串，如 'cpu' 或 'cuda:0'
+    return: (input_seq, target_seq)，形状均为 (batch_size, context_length)
+    '''
+    indices = np.random.randint(0, len(x) - context_length, size=batch_size)
+
+    input_seq = x[indices[:,None] + np.arange(0, context_length)]
+
+    indices += 1
+    target_seq = x[indices[:,None] + np.arange(0, context_length)]
+
+    input_seq_tensor = torch.tensor(input_seq, device=device)
+    target_seq_tensor = torch.tensor(target_seq, device=device)
+
+    return (input_seq_tensor, target_seq_tensor)
