@@ -4,6 +4,8 @@ from jaxtyping import Float,Bool,Int
 from torch import Tensor
 from collections.abc import Iterable
 import numpy as np
+from torch.nn import Module
+from torch.optim import Optimizer
 
 def softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
     """
@@ -113,3 +115,34 @@ def get_batch(
     target_seq_tensor = torch.tensor(target_seq, device=device)
 
     return (input_seq_tensor, target_seq_tensor)
+
+def save_checkpoint(model: Module,
+               optimizer: Optimizer,
+               iteration: int,
+               out) -> None:
+    '''
+    model: torch.nn.Module  模型
+    optimizer: torch.optim.Optimizer  优化器
+    iteration: int  当前的迭代步数
+    out: 保存路径或文件对象
+    '''
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "iter_num": iteration
+        }, out)
+
+
+def load_checkpoint(src, model: Module, optimizer: Optimizer = None) -> int:
+    '''
+    src: 检查点路径或文件对象
+    return: int，检查点中保存的迭代步数
+    '''
+    device = next(model.parameters()).device
+    state_dict = torch.load(src, map_location=device, weights_only=True)
+    model.load_state_dict(state_dict["model"])
+    if optimizer is not None:
+        optimizer.load_state_dict(state_dict["optimizer"])
+    
+    return state_dict["iter_num"]
